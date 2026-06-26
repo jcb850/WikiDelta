@@ -44,6 +44,16 @@ def test_infer_source_config_for_url_and_markdown_file(tmp_path: Path):
     assert infer_source_config("https://example.com/page")["fetcher"] == "builtin.http"
 
 
+def test_infer_source_config_preserves_local_html_as_raw_text(tmp_path: Path):
+    html = tmp_path / "page.html"
+    html.write_text("<!doctype html><html><body><h1>Hello</h1></body></html>", encoding="utf-8")
+
+    config = infer_source_config(str(html))
+
+    assert config["fetcher"] == "builtin.file"
+    assert config["transformer"] == "builtin.text"
+
+
 def test_unknown_transformer_raises_clear_error():
     raw = type("Raw", (), {"content": "x", "content_type": "text/plain", "metadata": {}})()
     with pytest.raises(ValueError, match="Unsupported transformer"):

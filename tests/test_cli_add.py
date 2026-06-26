@@ -50,3 +50,16 @@ def test_add_defaults_to_raw_source_directory_when_into_is_omitted(tmp_path: Pat
     wd_path = tmp_path / "raw_source" / "a.wd"
     assert wd_path.exists()
     assert not (tmp_path / "a.wd").exists()
+
+
+def test_add_local_html_preserves_original_file_text(tmp_path: Path):
+    source = tmp_path / "page.html"
+    html = "<!doctype html>\n<html><head><style>.x{color:red}</style></head><body><h1>Hello</h1></body></html>"
+    source.write_text(html, encoding="utf-8")
+
+    result = CliRunner().invoke(app, ["add", str(source), "--workspace", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0
+    doc = WdDocument.parse((tmp_path / "raw_source" / "page.wd").read_text(encoding="utf-8"))
+    assert doc.meta.source.transformer == "builtin.text"
+    assert doc.section("effective").strip() == html

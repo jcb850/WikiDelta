@@ -33,8 +33,8 @@ def infer_source_config(target: str) -> dict:
         ".md": "builtin.markdown",
         ".markdown": "builtin.markdown",
         ".txt": "builtin.text",
-        ".html": "builtin.html_to_markdown",
-        ".htm": "builtin.html_to_markdown",
+        ".html": "builtin.text",
+        ".htm": "builtin.text",
         ".json": "builtin.json_to_markdown",
         ".pdf": "builtin.pdf_to_markdown",
     }.get(suffix, "builtin.text")

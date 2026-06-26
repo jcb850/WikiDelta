@@ -150,7 +150,7 @@ When `wd status` succeeds but pending review content exists, it returns exit cod
 ```text
 *.md        builtin.file + builtin.markdown
 *.txt       builtin.file + builtin.text
-*.html      builtin.file + builtin.html_to_markdown
+*.html      builtin.file + builtin.text
 *.json      builtin.file + builtin.json_to_markdown
 *.pdf       builtin.file + builtin.pdf_to_markdown
 http(s)://  builtin.http + builtin.html_to_markdown
