@@ -69,6 +69,16 @@ def update(
     workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
     json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
 ) -> None:
+    if path.suffix != ".wd":
+        payload = {
+            "ok": False,
+            "error": {
+                "code": "INVALID_UPDATE_TARGET",
+                "message": "wd update only accepts .wd files. Run wd update path/to/file.wd, not the original source file.",
+            },
+        }
+        emit(payload, as_json=json_output)
+        raise typer.Exit(1)
     emit(update_document(path, workspace=workspace), as_json=json_output)
 
 

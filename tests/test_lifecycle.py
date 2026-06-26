@@ -30,6 +30,18 @@ def test_update_changes_snapshot_only_and_status_reports_pending_review(tmp_path
     assert '"state": "pending_review"' in status.stdout
 
 
+def test_update_rejects_non_wd_file_with_json_error(tmp_path: Path):
+    source = tmp_path / "source.html"
+    source.write_text("<!doctype html><html></html>", encoding="utf-8")
+    CliRunner().invoke(app, ["init", "--workspace", str(tmp_path)])
+
+    result = CliRunner().invoke(app, ["update", str(source), "--workspace", str(tmp_path), "--json"])
+
+    assert result.exit_code == 1
+    assert '"ok": false' in result.stdout
+    assert "wd update only accepts .wd files" in result.stdout
+
+
 def test_update_same_content_keeps_file_clean_without_snapshot(tmp_path: Path):
     _source, wd_path = _add_doc(tmp_path)
     runner = CliRunner()
