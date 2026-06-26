@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="./assets/wikidelta-icon.png" alt="WikiDelta 图标" width="160">
+</p>
+
 # WikiDelta
 
 中文说明 | [English README](./README.md)
 
-WikiDelta 是一个面向 llmwiki 的 `.wd` 知识源生命周期工具。它把文件系统里的知识源封装成可维护的 `.wd` 文件：保存当前生效内容和来源配置，并且只在存在待审阅候选内容时保存来源快照。
+WikiDelta 面向 llmwiki 的 raw source 层。它推出 `.wd` 文件格式，让 raw source 不再是一组直接刷新、直接入库的松散文件，而是可审阅、可追踪、适合 Agent 持续维护的知识单元。
+
+一个 `.wd` 文件会保存 llmwiki 应该入库的内容、用于刷新内容的来源配置，并且只在上游来源发生变化时保存候选快照。这样 raw source 的维护流程就变成了清晰的生命周期：获取、比对、审阅、应用、入库。
 
 第一版遵循一个清晰约束：
 
@@ -12,10 +18,10 @@ WikiDelta 是一个面向 llmwiki 的 `.wd` 知识源生命周期工具。它把
 
 ## 适用场景
 
-- 知识源维护在文件系统中，但文件类型很多，例如 Markdown、文本、HTML、JSON、PDF、网页。
-- 希望有一个明确的“当前生效内容”概念，避免来源刷新后直接污染知识库。
-- llmwiki 项目的 raw source 目录需要一种更适合持续维护和 Agent 操作的源文件格式。
-- Agent 需要通过稳定 CLI 和 JSON 输出维护知识源生命周期。
+- llmwiki 的 raw source 目录需要一种耐维护的源文件格式，方便人和 Agent 持续协作。
+- raw source 可能来自 Markdown、文本、HTML、JSON、PDF、本地文件或网页，但 llmwiki 应该只入库经过审阅的生效内容。
+- 希望有一个明确的“当前生效内容”层，避免来源刷新后直接污染知识库。
+- Agent 需要通过稳定 CLI 和 JSON 输出查看状态、生成 diff、应用审阅后的更新。
 
 ## `.wd` 文件结构
 
@@ -137,7 +143,7 @@ wd ingest raw_sources/policy/policy.wd --json
 
 ## 日常使用场景
 
-下面是我们刚才实际验证过的一套文件系统知识源维护流程。
+下面是用 `.wd` 文件维护 llmwiki raw source 目录的一套流程。
 
 进入 llmwiki 项目或测试知识项目目录：
 
@@ -342,3 +348,7 @@ pytest -v
 ```
 
 当前测试覆盖 `.wd` 解析、仓库初始化、source 推断、`wd add/update/status/review/apply/ingest`、脚本协议和端到端生命周期。
+
+## License
+
+WikiDelta 使用 [Apache License 2.0](./LICENSE) 授权。

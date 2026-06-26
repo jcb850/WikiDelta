@@ -1,8 +1,14 @@
+<p align="center">
+  <img src="./assets/wikidelta-icon.png" alt="WikiDelta icon" width="160">
+</p>
+
 # WikiDelta
 
 [中文说明](./README.zh-CN.md) | English
 
-WikiDelta is a `.wd` knowledge-source lifecycle tool for llmwiki. It wraps knowledge sources from the file system into maintainable `.wd` files: each file stores the currently effective content and source configuration, and only stores a source snapshot while there is candidate content waiting for review.
+WikiDelta is built for the llmwiki raw source layer. It introduces the `.wd` file format so raw sources can be managed as reviewable, agent-friendly knowledge units instead of loose files that are refreshed and ingested directly.
+
+A `.wd` file keeps the content llmwiki should ingest, the source configuration used to refresh it, and an optional candidate snapshot when upstream source content changes. This gives llmwiki raw source maintenance a clear lifecycle: fetch, compare, review, apply, and ingest.
 
 The first version follows one clear constraint:
 
@@ -12,10 +18,10 @@ The first version follows one clear constraint:
 
 ## Use Cases
 
-- Knowledge sources are maintained in the file system, but the file types vary, such as Markdown, text, HTML, JSON, PDF, and web pages.
-- You want an explicit concept of "currently effective content" to prevent source refreshes from directly polluting the knowledge base.
-- The llmwiki project's raw source directory needs a source-file format that is easier to maintain continuously and operate with agents.
-- Agents need a stable CLI and JSON output to maintain the knowledge-source lifecycle.
+- The llmwiki raw source directory needs a durable source-file format that can be maintained continuously by people and agents.
+- Raw sources may originate from Markdown, text, HTML, JSON, PDF, local files, or web pages, but llmwiki should ingest only reviewed effective content.
+- You want an explicit "currently effective content" layer so source refreshes cannot directly pollute the knowledge base.
+- Agents need stable CLI commands and JSON output to inspect source state, generate diffs, and apply reviewed updates.
 
 ## `.wd` File Structure
 
@@ -137,7 +143,7 @@ wd ingest raw_sources/policy/policy.wd --json
 
 ## Daily Workflow Example
 
-This is the workflow we use for a filesystem-backed llmwiki raw source directory.
+This is the workflow for maintaining an llmwiki raw source directory with `.wd` files.
 
 Start in the knowledge project directory:
 
@@ -342,3 +348,7 @@ pytest -v
 ```
 
 Current tests cover `.wd` parsing, repository initialization, source inference, `wd add/update/status/review/apply/ingest`, the script protocol, and the end-to-end lifecycle.
+
+## License
+
+WikiDelta is licensed under the [Apache License 2.0](./LICENSE).
