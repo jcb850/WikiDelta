@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/wikidelta-icon.png" alt="WikiDelta 图标" width="160">
+  <img src="https://raw.githubusercontent.com/jcb850/WikiDelta/main/assets/wikidelta-icon.png" alt="WikiDelta 图标" width="160">
 </p>
 
 # WikiDelta
@@ -78,17 +78,24 @@ sync:
 
 ## 安装与运行
 
-当前项目是 Python CLI 包。开发环境中可以直接使用 `PYTHONPATH` 运行：
+从 PyPI 安装 WikiDelta：
 
 ```bash
-PYTHONPATH=src python3 -m wikidelta.cli --help
+pip install wikidelta
+wd --help
 ```
 
-安装为本地可执行命令：
+本地开发时，可以用 editable 模式安装当前仓库：
 
 ```bash
 pip install -e .
 wd --help
+```
+
+也可以不安装包，直接从源码目录运行：
+
+```bash
+PYTHONPATH=src python3 -m wikidelta.cli --help
 ```
 
 ## 快速开始

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/wikidelta-icon.png" alt="WikiDelta icon" width="160">
+  <img src="https://raw.githubusercontent.com/jcb850/WikiDelta/main/assets/wikidelta-icon.png" alt="WikiDelta icon" width="160">
 </p>
 
 # WikiDelta
@@ -78,17 +78,24 @@ Core rules:
 
 ## Installation and Running
 
-This project is currently a Python CLI package. In a development environment, you can run it directly with `PYTHONPATH`:
+Install WikiDelta from PyPI:
 
 ```bash
-PYTHONPATH=src python3 -m wikidelta.cli --help
+pip install wikidelta
+wd --help
 ```
 
-Install it as a local executable command:
+For local development, install the repository in editable mode:
 
 ```bash
 pip install -e .
 wd --help
+```
+
+You can also run it directly from the source tree without installing the package:
+
+```bash
+PYTHONPATH=src python3 -m wikidelta.cli --help
 ```
 
 ## Quick Start
