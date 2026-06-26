@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 
 from wikidelta.repository import Repository
-from wikidelta.service import add_source
+from wikidelta.service import add_source, apply_review, status_items, update_document, write_review
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -61,6 +61,47 @@ def add(
         },
         as_json=json_output,
     )
+
+
+@app.command()
+def update(
+    path: Path = typer.Argument(..., help=".wd file to update."),
+    workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
+) -> None:
+    emit(update_document(path, workspace=workspace), as_json=json_output)
+
+
+@app.command()
+def status(
+    workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
+) -> None:
+    items = status_items(workspace=workspace)
+    payload = {"ok": True, "workspace": str(workspace), "items": items}
+    emit(payload, as_json=json_output)
+    if any(item.get("state") in {"pending_review", "effective_changed"} for item in items):
+        raise typer.Exit(3)
+
+
+@app.command()
+def review(
+    path: Path = typer.Argument(..., help=".wd file to review."),
+    workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
+) -> None:
+    emit({"ok": True, "review": write_review(path, workspace=workspace)}, as_json=json_output)
+
+
+@app.command("apply")
+def apply_cmd(
+    path: Path = typer.Argument(..., help=".wd file to apply."),
+    workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
+    strategy: str = typer.Option("replace", "--strategy", help="Apply strategy."),
+    yes: bool = typer.Option(False, "--yes", help="Confirm lifecycle mutation."),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
+) -> None:
+    emit(apply_review(path, workspace=workspace, strategy=strategy, yes=yes), as_json=json_output)
 
 
 if __name__ == "__main__":
