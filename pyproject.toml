@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wikidelta"
+version = "0.1.0"
+description = "Lifecycle CLI for .wd llmwiki source files"
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4>=4.12",
+  "html2text>=2024.2.26",
+  "pydantic>=2.7",
+  "pypdf>=4.2",
+  "PyYAML>=6.0",
+  "requests>=2.32",
+  "typer>=0.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.2"]
+
+[project.scripts]
+wd = "wikidelta.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
