@@ -1,29 +1,31 @@
 # WikiDelta
 
-WikiDelta 是一个面向 llmwiki 的 `.wd` 知识源生命周期工具。它把文件系统里的知识源封装成可维护的 `.wd` 文件：既保存当前生效内容，也记录来源配置和最近一次来源快照，方便人工或 Agent 审阅后再让内容进入知识库。
+[中文说明](./README.zh-CN.md) | English
 
-第一版遵循一个清晰约束：
+WikiDelta is a `.wd` knowledge-source lifecycle tool for llmwiki. It wraps knowledge sources from the file system into maintainable `.wd` files: each file stores the currently effective content, the source configuration, and the latest source snapshot, so humans or agents can review changes before the content enters the knowledge base.
+
+The first version follows one clear constraint:
 
 ```text
-1 个 .wd 文件 = 1 个知识单元 = 1 个 source = 1 个 effective 内容区
+1 .wd file = 1 knowledge unit = 1 source = 1 effective content section
 ```
 
-## 适用场景
+## Use Cases
 
-- 知识源维护在文件系统中，但文件类型很多，例如 Markdown、文本、HTML、JSON、PDF、网页。
-- 希望有一个明确的“当前生效内容”概念，避免来源刷新后直接污染知识库。
-- llmwiki 项目的 raw source 目录需要一种更适合持续维护和 Agent 操作的源文件格式。
-- Agent 需要通过稳定 CLI 和 JSON 输出维护知识源生命周期。
+- Knowledge sources are maintained in the file system, but the file types vary, such as Markdown, text, HTML, JSON, PDF, and web pages.
+- You want an explicit concept of "currently effective content" to prevent source refreshes from directly polluting the knowledge base.
+- The llmwiki project's raw source directory needs a source-file format that is easier to maintain continuously and operate with agents.
+- Agents need a stable CLI and JSON output to maintain the knowledge-source lifecycle.
 
-## `.wd` 文件结构
+## `.wd` File Structure
 
-`.wd` 本质上是一个 Markdown 文件，由 YAML front matter 和命名内容区组成：
+A `.wd` file is essentially a Markdown file composed of YAML front matter and named content sections:
 
 ```markdown
 ---
 wd_version: 1
 id: pricing-policy
-title: 计费规则
+title: Pricing Rules
 status: active
 content_type: markdown
 tags:
@@ -40,106 +42,106 @@ sync:
 ---
 
 <!-- wd:effective -->
-# 计费规则
+# Pricing Rules
 
-这里是当前生效内容，会被导入 llmwiki。
+This is the currently effective content and will be imported into llmwiki.
 <!-- /wd:effective -->
 
 <!-- wd:source_snapshot -->
-# 计费规则
+# Pricing Rules
 
-这里是最近一次从来源获取并转换后的候选内容。
+This is the latest candidate content fetched and transformed from the source.
 <!-- /wd:source_snapshot -->
 
 <!-- wd:notes -->
-维护备注、审阅判断、为什么接受或拒绝某些来源变化。
+Maintenance notes, review decisions, and why certain source changes were accepted or rejected.
 <!-- /wd:notes -->
 ```
 
-核心规则：
+Core rules:
 
-- `wd:effective` 是默认唯一入库内容。
-- `wd:source_snapshot` 是候选内容，用于审阅和 diff，不会直接入库。
-- `wd:notes` 是维护备注，不会默认进入 llmwiki。
-- `id` 是知识单元稳定身份，用于状态、缓存、review 和后续 upsert。
-- 初次 `wd add` 会让 `effective` 和 `source_snapshot` 一致；后续 `wd update` 只刷新 `source_snapshot`。
+- `wd:effective` is the only content imported into the knowledge base by default.
+- `wd:source_snapshot` is candidate content for review and diffing, and is not imported directly.
+- `wd:notes` contains maintenance notes and is not imported into llmwiki by default.
+- `id` is the stable identity of the knowledge unit, used for status, caching, review, and future upsert operations.
+- The first `wd add` makes `effective` and `source_snapshot` identical; later `wd update` only refreshes `source_snapshot`.
 
-## 安装与运行
+## Installation and Running
 
-当前项目是 Python CLI 包。开发环境中可以直接使用 `PYTHONPATH` 运行：
+This project is currently a Python CLI package. In a development environment, you can run it directly with `PYTHONPATH`:
 
 ```bash
 PYTHONPATH=src python3 -m wikidelta.cli --help
 ```
 
-安装为本地可执行命令：
+Install it as a local executable command:
 
 ```bash
 pip install -e .
 wd --help
 ```
 
-## 快速开始
+## Quick Start
 
-初始化工作区：
+Initialize a workspace:
 
 ```bash
 wd init --mode llmwiki_project
 ```
 
-把本地 Markdown 文件封装成 `.wd`：
+Wrap a local Markdown file into a `.wd` file:
 
 ```bash
 wd add ./policy.md --into raw_sources/policy
 ```
 
-来源文件变化后刷新候选快照：
+Refresh the candidate snapshot after the source file changes:
 
 ```bash
 wd update raw_sources/policy/policy.wd
 ```
 
-查看状态：
+Check status:
 
 ```bash
 wd status --json
 ```
 
-生成审阅材料：
+Generate review materials:
 
 ```bash
 wd review raw_sources/policy/policy.wd --json
 ```
 
-确认接受候选内容为生效内容：
+Accept the candidate content as the effective content:
 
 ```bash
 wd apply raw_sources/policy/policy.wd --strategy replace --yes
 ```
 
-作为 llmwiki 兼容桥，只提取 `wd:effective`：
+Extract only `wd:effective` as an llmwiki-compatible bridge:
 
 ```bash
 wd ingest raw_sources/policy/policy.wd --json
 ```
 
-## CLI 命令
+## CLI Commands
 
 ```text
-wd init      初始化 .wikidelta 状态目录
-wd add       从本地文件或 URL 创建 .wd
-wd update    按 source 配置刷新 source_snapshot
-wd status    扫描 .wd 状态
-wd review    生成 review JSON 和 patch
-wd apply     把候选内容应用到 effective
-wd ingest    提取 effective，作为 llmwiki 兼容桥
+wd init      Initialize the .wikidelta state directory
+wd add       Create a .wd file from a local file or URL
+wd update    Refresh source_snapshot according to the source configuration
+wd status    Scan .wd status
+wd review    Generate review JSON and patch files
+wd apply     Apply candidate content to effective
+wd ingest    Extract effective as an llmwiki-compatible bridge
 ```
 
-`wd status` 在命令成功但存在待审阅内容时返回退出码 `3`。这不是执行失败，而是告诉 Agent 或脚本“有 pending review 需要处理”。
+When `wd status` succeeds but pending review content exists, it returns exit code `3`. This is not an execution failure; it tells agents or scripts that pending review needs to be handled.
 
-## 内置来源与转换
+## Built-in Sources and Transforms
 
-`wd add` 会根据输入自动推断常见来源管线：
+`wd add` automatically infers common source pipelines from the input:
 
 ```text
 *.md        builtin.file + builtin.markdown
@@ -150,7 +152,7 @@ wd ingest    提取 effective，作为 llmwiki 兼容桥
 http(s)://  builtin.http + builtin.html_to_markdown
 ```
 
-也可以在 `.wd` 中手动维护 source 配置：
+You can also maintain the source configuration manually in a `.wd` file:
 
 ```yaml
 source:
@@ -162,9 +164,9 @@ source:
     selector: main
 ```
 
-## llmwiki 项目模式
+## llmwiki Project Mode
 
-推荐把 `.wd` 直接放在 llmwiki 项目的 raw source 文件结构里：
+The recommended layout is to place `.wd` files directly inside the raw source file structure of an llmwiki project:
 
 ```text
 llmwiki-project/
@@ -173,40 +175,40 @@ llmwiki-project/
     policy/refund-policy.wd
 ```
 
-这种模式下，`.wd` 所属项目由目录上下文决定，不需要为每个 `.wd` 配置 llmwiki 的 `base_url` 或 `project`。
+In this mode, the project a `.wd` file belongs to is determined by directory context. You do not need to configure llmwiki `base_url` or `project` for every `.wd` file.
 
-入库原则是：llmwiki 或兼容桥只能读取 `wd:effective`，不能把整个 `.wd` 当普通 Markdown 导入，否则 source 配置、候选快照和 notes 会污染知识库。
+The import rule is: llmwiki or a compatible bridge may only read `wd:effective`; it must not import the entire `.wd` file as ordinary Markdown, otherwise the source configuration, candidate snapshot, and notes will pollute the knowledge base.
 
-## Agent 友好约定
+## Agent-Friendly Conventions
 
-主命令支持 JSON 输出和显式 workspace：
+Main commands support JSON output and an explicit workspace:
 
 ```bash
 wd status --workspace /path/to/repo --json
 ```
 
-影响 `effective` 的生命周期操作需要显式确认：
+Lifecycle operations that affect `effective` require explicit confirmation:
 
 ```bash
 wd apply path/to/file.wd --strategy replace --yes
 ```
 
-推荐 Agent 工作流：
+Recommended agent workflow:
 
 ```text
 1. wd status --json
-2. 对 pending_review 的文件执行 wd review --json
-3. 读取 .wikidelta/reviews/<id>.json 和 .patch
-4. 判断是否接受变化
+2. Run wd review --json for files in pending_review
+3. Read .wikidelta/reviews/<id>.json and .patch
+4. Decide whether to accept the changes
 5. wd apply <file.wd> --strategy replace --yes
 6. wd ingest <file.wd> --json
 ```
 
-## 脚本扩展
+## Script Extensions
 
-复杂来源可以使用 `script.python`。脚本从 stdin 读取 JSON，并向 stdout 输出 JSON。
+Complex sources can use `script.python`. The script reads JSON from stdin and writes JSON to stdout.
 
-`.wd` 示例：
+`.wd` example:
 
 ```yaml
 source:
@@ -219,7 +221,7 @@ source:
   transform: {}
 ```
 
-成功输出：
+Successful output:
 
 ```json
 {
@@ -230,7 +232,7 @@ source:
 }
 ```
 
-失败输出：
+Failed output:
 
 ```json
 {
@@ -243,14 +245,14 @@ source:
 }
 ```
 
-凭证建议通过环境变量传入脚本，不要写入 `.wd` 文件。
+Credentials should be passed to scripts through environment variables and should not be written into `.wd` files.
 
-## 测试
+## Testing
 
-运行完整测试：
+Run the full test suite:
 
 ```bash
 pytest -v
 ```
 
-当前测试覆盖 `.wd` 解析、仓库初始化、source 推断、`wd add/update/status/review/apply/ingest`、脚本协议和端到端生命周期。
+Current tests cover `.wd` parsing, repository initialization, source inference, `wd add/update/status/review/apply/ingest`, the script protocol, and the end-to-end lifecycle.
