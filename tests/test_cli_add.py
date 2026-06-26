@@ -24,3 +24,17 @@ def test_add_markdown_file_creates_wd_with_initial_effective_and_snapshot(tmp_pa
     assert doc.meta.source.transformer == "builtin.markdown"
     assert doc.section("effective").strip() == "# A\n\nBody"
     assert doc.section("source_snapshot").strip() == "# A\n\nBody"
+
+
+def test_add_defaults_to_raw_source_directory_when_into_is_omitted(tmp_path: Path):
+    source = tmp_path / "a.md"
+    source.write_text("# A\n\nBody", encoding="utf-8")
+    runner = CliRunner()
+
+    result = runner.invoke(app, ["add", str(source), "--workspace", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0
+    assert '"path":' in result.stdout
+    wd_path = tmp_path / "raw_source" / "a.wd"
+    assert wd_path.exists()
+    assert not (tmp_path / "a.wd").exists()

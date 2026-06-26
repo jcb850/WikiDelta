@@ -25,7 +25,7 @@ def add_source(target: str, *, workspace: Path, into: Path | None = None, title:
     parsed_target = Path(target)
     stem = parsed_target.stem if parsed_target.suffix else slugify(target.rstrip("/"))
     wd_id = slugify(stem)
-    output_dir = into if into is not None else repo.root
+    output_dir = into if into is not None else repo.root / "raw_source"
     if not output_dir.is_absolute():
         output_dir = repo.root / output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
