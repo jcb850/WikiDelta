@@ -13,6 +13,7 @@ class SourceConfig(BaseModel):
 
 
 class SyncState(BaseModel):
+    state: str = "up_to_date"
     strategy: str = "review_before_apply"
     last_refreshed_at: str | None = None
     source_hash: str | None = None

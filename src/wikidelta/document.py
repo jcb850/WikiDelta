@@ -38,22 +38,26 @@ class WdDocument:
         body = text[match.end() :]
         sections = {name: content.strip("\n") for name, content in SECTION_RE.findall(body)}
 
-        for required in ("effective", "source_snapshot"):
-            if required not in sections:
-                raise WdParseError(f"Missing wd:{required} section")
+        if "effective" not in sections:
+            raise WdParseError("Missing wd:effective section")
 
         return cls(meta=meta, sections=sections)
 
-    def section(self, name: str) -> str:
-        return self.sections[name]
+    def section(self, name: str, default: str | None = None) -> str | None:
+        return self.sections.get(name, default)
 
     def set_section(self, name: str, content: str) -> None:
         self.sections[name] = content.strip("\n")
 
+    def remove_section(self, name: str) -> None:
+        self.sections.pop(name, None)
+
     def to_text(self) -> str:
         meta_dict = self.meta.model_dump(mode="json", exclude_none=True)
         front_matter = yaml.safe_dump(meta_dict, sort_keys=False, allow_unicode=True).strip()
-        section_names = ["effective", "source_snapshot"]
+        section_names = ["effective"]
+        if "source_snapshot" in self.sections:
+            section_names.append("source_snapshot")
         if "notes" in self.sections:
             section_names.append("notes")
         section_names.extend(name for name in self.sections if name not in section_names)
@@ -78,8 +82,9 @@ def render_wd(*, wd_id: str, title: str, source: dict[str, Any], content: str) -
             "source": source,
             "sync": {
                 "strategy": "review_before_apply",
+                "state": "up_to_date",
                 "source_hash": hash_value,
-                "snapshot_hash": hash_value,
+                "snapshot_hash": None,
                 "effective_hash": hash_value,
                 "last_ingested_at": None,
             },
@@ -89,7 +94,6 @@ def render_wd(*, wd_id: str, title: str, source: dict[str, Any], content: str) -
         meta=meta,
         sections={
             "effective": body,
-            "source_snapshot": body,
             "notes": "",
         },
     )

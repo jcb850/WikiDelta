@@ -59,7 +59,7 @@ def test_write_updates_only_named_section_and_preserves_notes():
     assert reparsed.section("notes").strip() == "Keep this note."
 
 
-def test_render_wd_initializes_effective_and_snapshot_to_same_content():
+def test_render_wd_initializes_effective_without_snapshot():
     text = render_wd(
         wd_id="a-doc",
         title="A Doc",
@@ -76,9 +76,55 @@ def test_render_wd_initializes_effective_and_snapshot_to_same_content():
 
     assert doc.meta.id == "a-doc"
     assert doc.section("effective").strip() == "# A\n\nBody"
-    assert doc.section("source_snapshot").strip() == "# A\n\nBody"
+    assert doc.section("source_snapshot", default=None) is None
     assert doc.meta.sync.effective_hash == content_hash("# A\n\nBody")
-    assert doc.meta.sync.snapshot_hash == content_hash("# A\n\nBody")
+    assert doc.meta.sync.snapshot_hash is None
+
+
+def test_parse_allows_missing_source_snapshot():
+    text = """---
+wd_version: 1
+id: clean-doc
+title: Clean Doc
+source:
+  fetcher: builtin.file
+  fetch:
+    path: ./clean.md
+  transformer: builtin.markdown
+  transform: {}
+sync:
+  state: up_to_date
+---
+
+<!-- wd:effective -->
+# Clean
+<!-- /wd:effective -->
+"""
+
+    doc = WdDocument.parse(text)
+
+    assert doc.section("effective").strip() == "# Clean"
+    assert doc.section("source_snapshot", default=None) is None
+
+
+def test_render_wd_omits_source_snapshot_for_initial_clean_file():
+    text = render_wd(
+        wd_id="a-doc",
+        title="A Doc",
+        source={
+            "fetcher": "builtin.file",
+            "fetch": {"path": "./a.md"},
+            "transformer": "builtin.markdown",
+            "transform": {},
+        },
+        content="# A",
+    )
+
+    assert "wd:effective" in text
+    assert "wd:source_snapshot" not in text
+    doc = WdDocument.parse(text)
+    assert doc.meta.sync.state == "up_to_date"
+    assert doc.meta.sync.snapshot_hash is None
 
 
 def test_content_hash_is_stable_sha256():
