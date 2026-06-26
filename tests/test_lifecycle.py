@@ -30,6 +30,26 @@ def test_update_changes_snapshot_only_and_status_reports_pending_review(tmp_path
     assert '"state": "pending_review"' in status.stdout
 
 
+def test_update_without_path_updates_all_wd_files_in_workspace(tmp_path: Path):
+    first_source, first_wd = _add_doc(tmp_path)
+    second_source = tmp_path / "b.md"
+    second_source.write_text("# B\n\nOriginal", encoding="utf-8")
+    add_second = CliRunner().invoke(app, ["add", str(second_source), "--into", str(tmp_path / "raw_sources"), "--workspace", str(tmp_path), "--json"])
+    assert add_second.exit_code == 0
+    second_wd = tmp_path / "raw_sources" / "b.wd"
+    first_source.write_text("# A\n\nChanged", encoding="utf-8")
+    second_source.write_text("# B\n\nChanged", encoding="utf-8")
+
+    result = CliRunner().invoke(app, ["update", "--workspace", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0
+    assert '"items"' in result.stdout
+    first_doc = WdDocument.parse(first_wd.read_text(encoding="utf-8"))
+    second_doc = WdDocument.parse(second_wd.read_text(encoding="utf-8"))
+    assert first_doc.section("source_snapshot").strip() == "# A\n\nChanged"
+    assert second_doc.section("source_snapshot").strip() == "# B\n\nChanged"
+
+
 def test_update_rejects_non_wd_file_with_json_error(tmp_path: Path):
     source = tmp_path / "source.html"
     source.write_text("<!doctype html><html></html>", encoding="utf-8")

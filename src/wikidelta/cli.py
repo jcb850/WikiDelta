@@ -65,10 +65,15 @@ def add(
 
 @app.command()
 def update(
-    path: Path = typer.Argument(..., help=".wd file to update."),
+    path: Path | None = typer.Argument(None, help=".wd file to update. Omit to update all .wd files in the workspace."),
     workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
     json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
 ) -> None:
+    if path is None:
+        repo = Repository(workspace)
+        items = [update_document(wd_path, workspace=repo.root) for wd_path in repo.iter_wd_files()]
+        emit({"ok": True, "workspace": str(repo.root), "items": items}, as_json=json_output)
+        return
     if path.suffix != ".wd":
         payload = {
             "ok": False,

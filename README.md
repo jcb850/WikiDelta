@@ -99,7 +99,13 @@ Wrap a local Markdown file into a `.wd` file:
 wd add ./policy.md --into raw_sources/policy
 ```
 
-Refresh the candidate snapshot after the source file changes:
+Refresh candidate snapshots after source files change. Without a path, WikiDelta updates every `.wd` file in the workspace:
+
+```bash
+wd update
+```
+
+Pass a path when you only want to update one `.wd` file:
 
 ```bash
 wd update raw_sources/policy/policy.wd
@@ -134,7 +140,7 @@ wd ingest raw_sources/policy/policy.wd --json
 ```text
 wd init      Initialize the .wikidelta state directory
 wd add       Create a .wd file from a local file or URL
-wd update    Refresh the source and create source_snapshot only when review is needed
+wd update    Refresh all .wd files, or one .wd file when a path is provided
 wd status    Scan .wd status
 wd review    Generate review JSON and patch files
 wd apply     Apply candidate content to effective
