@@ -19,3 +19,22 @@ def test_ingest_outputs_only_effective_content(tmp_path: Path):
     assert '"content": "# A\\n\\nEffective"' in result.stdout
     assert "source_snapshot" not in result.stdout
     assert "builtin.file" not in result.stdout
+
+
+def test_apply_removes_snapshot_and_ingest_outputs_only_effective(tmp_path: Path):
+    source = tmp_path / "a.md"
+    source.write_text("# A\n\nOriginal", encoding="utf-8")
+    runner = CliRunner()
+    assert runner.invoke(app, ["add", str(source), "--workspace", str(tmp_path), "--json"]).exit_code == 0
+    wd_path = tmp_path / "raw_source" / "a.wd"
+    source.write_text("# A\n\nAccepted", encoding="utf-8")
+
+    assert runner.invoke(app, ["update", str(wd_path), "--workspace", str(tmp_path)]).exit_code == 0
+    assert "wd:source_snapshot" in wd_path.read_text(encoding="utf-8")
+    assert runner.invoke(app, ["apply", str(wd_path), "--workspace", str(tmp_path), "--strategy", "replace", "--yes"]).exit_code == 0
+    result = runner.invoke(app, ["ingest", str(wd_path), "--workspace", str(tmp_path), "--json"])
+
+    assert "wd:source_snapshot" not in wd_path.read_text(encoding="utf-8")
+    assert result.exit_code == 0
+    assert "Accepted" in result.stdout
+    assert "source_snapshot" not in result.stdout

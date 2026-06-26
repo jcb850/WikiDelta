@@ -2,7 +2,7 @@
 
 [中文说明](./README.zh-CN.md) | English
 
-WikiDelta is a `.wd` knowledge-source lifecycle tool for llmwiki. It wraps knowledge sources from the file system into maintainable `.wd` files: each file stores the currently effective content, the source configuration, and the latest source snapshot, so humans or agents can review changes before the content enters the knowledge base.
+WikiDelta is a `.wd` knowledge-source lifecycle tool for llmwiki. It wraps knowledge sources from the file system into maintainable `.wd` files: each file stores the currently effective content and source configuration, and only stores a source snapshot while there is candidate content waiting for review.
 
 The first version follows one clear constraint:
 
@@ -47,24 +47,28 @@ sync:
 This is the currently effective content and will be imported into llmwiki.
 <!-- /wd:effective -->
 
-<!-- wd:source_snapshot -->
-# Pricing Rules
-
-This is the latest candidate content fetched and transformed from the source.
-<!-- /wd:source_snapshot -->
-
 <!-- wd:notes -->
 Maintenance notes, review decisions, and why certain source changes were accepted or rejected.
 <!-- /wd:notes -->
 ```
 
+When `wd update` finds source content that differs from `wd:effective`, WikiDelta adds a temporary candidate section:
+
+```markdown
+<!-- wd:source_snapshot -->
+# Pricing Rules
+
+This is the latest candidate content fetched and transformed from the source.
+<!-- /wd:source_snapshot -->
+```
+
 Core rules:
 
 - `wd:effective` is the only content imported into the knowledge base by default.
-- `wd:source_snapshot` is candidate content for review and diffing, and is not imported directly.
+- `wd:source_snapshot` is optional candidate content for review and diffing, and is not imported directly.
 - `wd:notes` contains maintenance notes and is not imported into llmwiki by default.
 - `id` is the stable identity of the knowledge unit, used for status, caching, review, and future upsert operations.
-- The first `wd add` makes `effective` and `source_snapshot` identical; later `wd update` only refreshes `source_snapshot`.
+- The first `wd add` writes only `effective`; later `wd update` creates `source_snapshot` only when source content differs.
 
 ## Installation and Running
 
@@ -130,7 +134,7 @@ wd ingest raw_sources/policy/policy.wd --json
 ```text
 wd init      Initialize the .wikidelta state directory
 wd add       Create a .wd file from a local file or URL
-wd update    Refresh source_snapshot according to the source configuration
+wd update    Refresh the source and create source_snapshot only when review is needed
 wd status    Scan .wd status
 wd review    Generate review JSON and patch files
 wd apply     Apply candidate content to effective

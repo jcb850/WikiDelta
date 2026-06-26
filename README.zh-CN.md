@@ -2,7 +2,7 @@
 
 中文说明 | [English README](./README.md)
 
-WikiDelta 是一个面向 llmwiki 的 `.wd` 知识源生命周期工具。它把文件系统里的知识源封装成可维护的 `.wd` 文件：既保存当前生效内容，也记录来源配置和最近一次来源快照，方便人工或 Agent 审阅后再让内容进入知识库。
+WikiDelta 是一个面向 llmwiki 的 `.wd` 知识源生命周期工具。它把文件系统里的知识源封装成可维护的 `.wd` 文件：保存当前生效内容和来源配置，并且只在存在待审阅候选内容时保存来源快照。
 
 第一版遵循一个清晰约束：
 
@@ -47,24 +47,28 @@ sync:
 这里是当前生效内容，会被导入 llmwiki。
 <!-- /wd:effective -->
 
-<!-- wd:source_snapshot -->
-# 计费规则
-
-这里是最近一次从来源获取并转换后的候选内容。
-<!-- /wd:source_snapshot -->
-
 <!-- wd:notes -->
 维护备注、审阅判断、为什么接受或拒绝某些来源变化。
 <!-- /wd:notes -->
 ```
 
+当 `wd update` 发现来源内容和 `wd:effective` 不一致时，WikiDelta 才会临时写入候选区：
+
+```markdown
+<!-- wd:source_snapshot -->
+# 计费规则
+
+这里是最近一次从来源获取并转换后的候选内容。
+<!-- /wd:source_snapshot -->
+```
+
 核心规则：
 
 - `wd:effective` 是默认唯一入库内容。
-- `wd:source_snapshot` 是候选内容，用于审阅和 diff，不会直接入库。
+- `wd:source_snapshot` 是可选候选内容，只在需要审阅时出现，用于审阅和 diff，不会直接入库。
 - `wd:notes` 是维护备注，不会默认进入 llmwiki。
 - `id` 是知识单元稳定身份，用于状态、缓存、review 和后续 upsert。
-- 初次 `wd add` 会让 `effective` 和 `source_snapshot` 一致；后续 `wd update` 只刷新 `source_snapshot`。
+- 初次 `wd add` 只写入 `effective`；后续 `wd update` 只有在来源内容变化时才创建 `source_snapshot`。
 
 ## 安装与运行
 
@@ -130,7 +134,7 @@ wd ingest raw_sources/policy/policy.wd --json
 ```text
 wd init      初始化 .wikidelta 状态目录
 wd add       从本地文件或 URL 创建 .wd
-wd update    按 source 配置刷新 source_snapshot
+wd update    刷新来源，并只在需要审阅时创建 source_snapshot
 wd status    扫描 .wd 状态
 wd review    生成 review JSON 和 patch
 wd apply     把候选内容应用到 effective
