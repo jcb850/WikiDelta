@@ -1,16 +1,15 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "wikidelta"
 version = "0.1.0"
 description = "Lifecycle CLI for .wd llmwiki source files"
-license = { file = "LICENSE" }
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
-classifiers = [
-  "License :: OSI Approved :: Apache Software License",
-]
 dependencies = [
   "beautifulsoup4>=4.12",
   "pydantic>=2.7",
@@ -25,6 +24,11 @@ dev = ["pytest>=8.2"]
 
 [project.scripts]
 wd = "wikidelta.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/jcb850/WikiDelta"
+Repository = "https://github.com/jcb850/WikiDelta"
+Issues = "https://github.com/jcb850/WikiDelta/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
