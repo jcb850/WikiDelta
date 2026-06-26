@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 
 from wikidelta.repository import Repository
-from wikidelta.service import add_source, apply_review, status_items, update_document, write_review
+from wikidelta.service import add_source, apply_review, extract_effective, status_items, update_document, write_review
 
 
 app = typer.Typer(no_args_is_help=True)
@@ -102,6 +102,15 @@ def apply_cmd(
     json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
 ) -> None:
     emit(apply_review(path, workspace=workspace, strategy=strategy, yes=yes), as_json=json_output)
+
+
+@app.command()
+def ingest(
+    path: Path = typer.Argument(..., help=".wd file to extract for llmwiki."),
+    workspace: Path = typer.Option(Path.cwd(), "--workspace", help="Workspace root."),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON output."),
+) -> None:
+    emit(extract_effective(path, workspace=workspace), as_json=json_output)
 
 
 if __name__ == "__main__":

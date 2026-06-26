@@ -124,3 +124,24 @@ def apply_review(path: Path, *, workspace: Path, strategy: str, yes: bool) -> di
     doc.meta.sync.snapshot_hash = content_hash(snapshot)
     path.write_text(doc.to_text(), encoding="utf-8")
     return {"ok": True, "path": str(path), "id": doc.meta.id, "strategy": strategy}
+
+
+def extract_effective(path: Path, *, workspace: Path) -> dict:
+    repo = Repository(workspace)
+    doc = WdDocument.parse(path.read_text(encoding="utf-8"))
+    relative_path = str(path.relative_to(repo.root) if path.is_relative_to(repo.root) else path)
+    return {
+        "ok": True,
+        "items": [
+            {
+                "external_id": f"wd:{doc.meta.id}",
+                "id": doc.meta.id,
+                "title": doc.meta.title,
+                "path": relative_path,
+                "content_type": doc.meta.content_type,
+                "tags": doc.meta.tags,
+                "effective_hash": content_hash(doc.section("effective").strip("\n")),
+                "content": doc.section("effective").strip("\n"),
+            }
+        ],
+    }

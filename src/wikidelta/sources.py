@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlparse
@@ -61,6 +63,20 @@ def fetch_source(fetcher: str, config: dict, *, workspace: Path, wd_id: str) -> 
             metadata={"url": config["url"]},
         )
 
+    if fetcher == "script.python":
+        payload = {
+            "kind": "fetch",
+            "wdId": wd_id,
+            "workspace": str(workspace),
+            "config": config.get("args", {}),
+        }
+        result = _run_python_script(config, payload, workspace=workspace)
+        return Artifact(
+            content=result["content"],
+            content_type=result.get("contentType", "text/plain"),
+            metadata=result.get("metadata", {}),
+        )
+
     raise ValueError(f"Unsupported fetcher: {fetcher}")
 
 
@@ -86,7 +102,49 @@ def transform_content(transformer: str, config: dict, raw: Artifact) -> Artifact
         return Artifact(content=f"```json\n{pretty}\n```", content_type="text/markdown", metadata=raw.metadata)
     if transformer == "builtin.pdf_to_markdown":
         return Artifact(content=raw.content.strip(), content_type="text/markdown", metadata=raw.metadata)
+    if transformer == "script.python":
+        payload = {
+            "kind": "transform",
+            "wdId": config.get("wd_id", ""),
+            "workspace": config.get("workspace", ""),
+            "contentType": raw.content_type,
+            "content": raw.content,
+            "metadata": raw.metadata,
+            "config": config.get("args", {}),
+        }
+        workspace = Path(config.get("workspace") or ".").resolve()
+        result = _run_python_script(config, payload, workspace=workspace)
+        return Artifact(
+            content=result["content"],
+            content_type=result.get("contentType", "text/markdown"),
+            metadata=result.get("metadata", {}),
+        )
     raise ValueError(f"Unsupported transformer: {transformer}")
+
+
+def _run_python_script(config: dict, payload: dict, *, workspace: Path) -> dict:
+    entry = Path(config["entry"])
+    if not entry.is_absolute():
+        entry = workspace / entry
+    completed = subprocess.run(
+        [sys.executable, str(entry)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=float(config.get("timeout", 30)),
+        cwd=str(workspace),
+        check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(completed.stderr.strip() or f"script exited with {completed.returncode}")
+    try:
+        result = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("script did not return JSON") from exc
+    if not result.get("ok"):
+        error = result.get("error", {})
+        raise RuntimeError(f"{error.get('code', 'SCRIPT_FAILED')}: {error.get('message', 'script failed')}")
+    return result
 
 
 def _content_type_for_path(path: Path) -> str:
