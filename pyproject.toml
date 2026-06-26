@@ -9,7 +9,6 @@ description = "Lifecycle CLI for .wd llmwiki source files"
 requires-python = ">=3.11"
 dependencies = [
   "beautifulsoup4>=4.12",
-  "html2text>=2024.2.26",
   "pydantic>=2.7",
   "pypdf>=4.2",
   "PyYAML>=6.0",
