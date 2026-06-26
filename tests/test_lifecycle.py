@@ -30,6 +30,31 @@ def test_update_changes_snapshot_only_and_status_reports_pending_review(tmp_path
     assert '"state": "pending_review"' in status.stdout
 
 
+def test_update_same_content_keeps_file_clean_without_snapshot(tmp_path: Path):
+    _source, wd_path = _add_doc(tmp_path)
+    runner = CliRunner()
+
+    update = runner.invoke(app, ["update", str(wd_path), "--workspace", str(tmp_path), "--json"])
+    status = runner.invoke(app, ["status", "--workspace", str(tmp_path), "--json"])
+
+    assert update.exit_code == 0
+    assert status.exit_code == 0
+    doc = WdDocument.parse(wd_path.read_text(encoding="utf-8"))
+    assert doc.section("source_snapshot", default=None) is None
+    assert doc.meta.sync.state == "up_to_date"
+
+
+def test_review_without_snapshot_returns_clean_and_suggests_update(tmp_path: Path):
+    _source, wd_path = _add_doc(tmp_path)
+
+    result = CliRunner().invoke(app, ["review", str(wd_path), "--workspace", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0
+    assert '"state": "clean"' in result.stdout
+    assert "wd update" in result.stdout
+    assert not (tmp_path / ".wikidelta" / "reviews" / "a.patch").exists()
+
+
 def test_review_writes_json_and_patch_then_apply_replaces_effective(tmp_path: Path):
     source, wd_path = _add_doc(tmp_path)
     source.write_text("# A\n\nChanged", encoding="utf-8")
@@ -45,4 +70,6 @@ def test_review_writes_json_and_patch_then_apply_replaces_effective(tmp_path: Pa
     assert apply_result.exit_code == 0
     doc = WdDocument.parse(wd_path.read_text(encoding="utf-8"))
     assert doc.section("effective").strip() == "# A\n\nChanged"
-    assert doc.meta.sync.effective_hash == doc.meta.sync.snapshot_hash
+    assert doc.section("source_snapshot", default=None) is None
+    assert doc.meta.sync.snapshot_hash is None
+    assert doc.meta.sync.state == "up_to_date"

@@ -49,10 +49,17 @@ def update_document(path: Path, *, workspace: Path) -> dict:
     raw = fetch_source(source.fetcher, source.fetch, workspace=repo.root, wd_id=doc.meta.id)
     transformed = transform_content(source.transformer, source.transform, raw)
     snapshot = transformed.content.strip("\n")
-    doc.set_section("source_snapshot", snapshot)
+    effective = doc.section("effective", default="").strip("\n")
     doc.meta.sync.source_hash = content_hash(raw.content)
-    doc.meta.sync.snapshot_hash = content_hash(snapshot)
-    doc.meta.sync.effective_hash = content_hash(doc.section("effective").strip("\n"))
+    doc.meta.sync.effective_hash = content_hash(effective)
+    if snapshot == effective:
+        doc.remove_section("source_snapshot")
+        doc.meta.sync.state = "up_to_date"
+        doc.meta.sync.snapshot_hash = None
+    else:
+        doc.set_section("source_snapshot", snapshot)
+        doc.meta.sync.state = "pending_review"
+        doc.meta.sync.snapshot_hash = content_hash(snapshot)
     path.write_text(doc.to_text(), encoding="utf-8")
     return {"ok": True, "path": str(path), "id": doc.meta.id, "snapshotHash": doc.meta.sync.snapshot_hash}
 
@@ -63,16 +70,17 @@ def status_items(*, workspace: Path) -> list[dict]:
     for path in repo.iter_wd_files():
         try:
             doc = WdDocument.parse(path.read_text(encoding="utf-8"))
-            effective_hash = content_hash(doc.section("effective").strip("\n"))
-            snapshot_hash = content_hash(doc.section("source_snapshot").strip("\n"))
-            state = "pending_review" if effective_hash != snapshot_hash else "clean"
+            effective_hash = content_hash(doc.section("effective", default="").strip("\n"))
+            snapshot = doc.section("source_snapshot", default=None)
+            snapshot_hash = content_hash(snapshot.strip("\n")) if snapshot is not None else None
+            state = "pending_review" if snapshot_hash is not None and effective_hash != snapshot_hash else "clean"
             items.append(
                 {
                     "path": str(path.relative_to(repo.root)),
                     "id": doc.meta.id,
                     "state": state,
                     "effectiveChanged": effective_hash != doc.meta.sync.effective_hash,
-                    "sourceChanged": effective_hash != snapshot_hash,
+                    "sourceChanged": snapshot_hash is not None and effective_hash != snapshot_hash,
                     "lastError": None,
                 }
             )
@@ -85,8 +93,19 @@ def write_review(path: Path, *, workspace: Path) -> dict:
     repo = Repository(workspace)
     repo.ensure_layout()
     doc = WdDocument.parse(path.read_text(encoding="utf-8"))
-    effective = doc.section("effective").strip("\n")
-    snapshot = doc.section("source_snapshot").strip("\n")
+    effective = doc.section("effective", default="").strip("\n")
+    maybe_snapshot = doc.section("source_snapshot", default=None)
+    if maybe_snapshot is None:
+        return {
+            "wdId": doc.meta.id,
+            "path": str(path.relative_to(repo.root) if path.is_relative_to(repo.root) else path),
+            "state": "clean",
+            "effectiveHash": content_hash(effective),
+            "snapshotHash": None,
+            "summary": {"addedLines": 0, "removedLines": 0},
+            "actions": [{"name": "update", "command": f"wd update {path}"}],
+        }
+    snapshot = maybe_snapshot.strip("\n")
     patch = "".join(
         difflib.unified_diff(
             effective.splitlines(keepends=True),
@@ -118,10 +137,15 @@ def apply_review(path: Path, *, workspace: Path, strategy: str, yes: bool) -> di
     if not yes:
         raise ValueError("--yes is required to apply changes")
     doc = WdDocument.parse(path.read_text(encoding="utf-8"))
-    snapshot = doc.section("source_snapshot").strip("\n")
+    maybe_snapshot = doc.section("source_snapshot", default=None)
+    if maybe_snapshot is None:
+        raise ValueError("No source_snapshot to apply")
+    snapshot = maybe_snapshot.strip("\n")
     doc.set_section("effective", snapshot)
+    doc.remove_section("source_snapshot")
+    doc.meta.sync.state = "up_to_date"
     doc.meta.sync.effective_hash = content_hash(snapshot)
-    doc.meta.sync.snapshot_hash = content_hash(snapshot)
+    doc.meta.sync.snapshot_hash = None
     path.write_text(doc.to_text(), encoding="utf-8")
     return {"ok": True, "path": str(path), "id": doc.meta.id, "strategy": strategy}
 
@@ -140,8 +164,8 @@ def extract_effective(path: Path, *, workspace: Path) -> dict:
                 "path": relative_path,
                 "content_type": doc.meta.content_type,
                 "tags": doc.meta.tags,
-                "effective_hash": content_hash(doc.section("effective").strip("\n")),
-                "content": doc.section("effective").strip("\n"),
+                "effective_hash": content_hash(doc.section("effective", default="").strip("\n")),
+                "content": doc.section("effective", default="").strip("\n"),
             }
         ],
     }
