@@ -135,6 +135,82 @@ Extract only `wd:effective` as an llmwiki-compatible bridge:
 wd ingest raw_sources/policy/policy.wd --json
 ```
 
+## Daily Workflow Example
+
+This is the workflow we use for a filesystem-backed llmwiki raw source directory.
+
+Start in the knowledge project directory:
+
+```bash
+cd /path/to/llmwiki-project
+wd init --mode llmwiki_project
+```
+
+Add source files. If `--into` is omitted, WikiDelta writes `.wd` files under `raw_source/` by default:
+
+```bash
+wd add ./policy.md
+wd add ./dashboard.html
+```
+
+Local HTML files are preserved as raw source text. That means the generated `.wd` keeps the original `<!doctype html>`, `<style>`, and other HTML text in `wd:effective`. Web URLs still use `builtin.html_to_markdown` by default.
+
+After source files change, update all `.wd` files:
+
+```bash
+wd update --json
+```
+
+If you only want to update one knowledge unit, pass the `.wd` path:
+
+```bash
+wd update raw_source/dashboard.wd --json
+```
+
+`wd update` intentionally accepts `.wd` files only. Do not pass the original source file:
+
+```bash
+# Wrong: this is the original source file
+wd update ./dashboard.html
+
+# Right: this is the lifecycle wrapper
+wd update raw_source/dashboard.wd
+```
+
+Check what needs review:
+
+```bash
+wd status --json
+```
+
+For every item with `state: pending_review`, generate review files:
+
+```bash
+wd review raw_source/dashboard.wd --json
+less .wikidelta/reviews/dashboard.patch
+cat .wikidelta/reviews/dashboard.json
+```
+
+If the candidate snapshot should become the new effective content:
+
+```bash
+wd apply raw_source/dashboard.wd --strategy replace --yes --json
+```
+
+After apply, confirm the workspace is clean:
+
+```bash
+wd status --json
+```
+
+Finally, inspect the content llmwiki should ingest:
+
+```bash
+wd ingest raw_source/dashboard.wd --json
+```
+
+`wd ingest` outputs only `wd:effective`; it does not include source config, `source_snapshot`, or `notes`.
+
 ## CLI Commands
 
 ```text

@@ -99,7 +99,13 @@ wd init --mode llmwiki_project
 wd add ./policy.md --into raw_sources/policy
 ```
 
-来源文件变化后刷新候选快照：
+来源文件变化后刷新候选快照。不传路径时，WikiDelta 会更新当前 workspace 下所有 `.wd` 文件：
+
+```bash
+wd update
+```
+
+只想更新某一个知识单元时，传入 `.wd` 文件路径：
 
 ```bash
 wd update raw_sources/policy/policy.wd
@@ -129,12 +135,88 @@ wd apply raw_sources/policy/policy.wd --strategy replace --yes
 wd ingest raw_sources/policy/policy.wd --json
 ```
 
+## 日常使用场景
+
+下面是我们刚才实际验证过的一套文件系统知识源维护流程。
+
+进入 llmwiki 项目或测试知识项目目录：
+
+```bash
+cd /path/to/llmwiki-project
+wd init --mode llmwiki_project
+```
+
+添加来源文件。如果省略 `--into`，WikiDelta 默认把 `.wd` 写到 `raw_source/`：
+
+```bash
+wd add ./policy.md
+wd add ./dashboard.html
+```
+
+本地 HTML 文件会按原始文本保留。也就是说，生成的 `.wd` 会保留原始 `<!doctype html>`、`<style>` 和完整 HTML 文本。网页 URL 仍然默认使用 `builtin.html_to_markdown` 做网页文本抽取。
+
+当来源文件发生变化后，批量更新所有 `.wd`：
+
+```bash
+wd update --json
+```
+
+如果只想更新某一个知识单元，传 `.wd` 文件路径：
+
+```bash
+wd update raw_source/dashboard.wd --json
+```
+
+`wd update` 只接受 `.wd` 文件。不要把原始 source 文件传给它：
+
+```bash
+# 错误：这是原始 source 文件
+wd update ./dashboard.html
+
+# 正确：这是生命周期封装文件
+wd update raw_source/dashboard.wd
+```
+
+查看哪些内容需要审阅：
+
+```bash
+wd status --json
+```
+
+对 `state: pending_review` 的文件生成审阅材料：
+
+```bash
+wd review raw_source/dashboard.wd --json
+less .wikidelta/reviews/dashboard.patch
+cat .wikidelta/reviews/dashboard.json
+```
+
+如果确认候选快照应该成为新的生效内容：
+
+```bash
+wd apply raw_source/dashboard.wd --strategy replace --yes --json
+```
+
+执行后再次检查状态：
+
+```bash
+wd status --json
+```
+
+最后确认 llmwiki 会吃到什么内容：
+
+```bash
+wd ingest raw_source/dashboard.wd --json
+```
+
+`wd ingest` 只输出 `wd:effective`，不会输出 source 配置、`source_snapshot` 或 `notes`。
+
 ## CLI 命令
 
 ```text
 wd init      初始化 .wikidelta 状态目录
 wd add       从本地文件或 URL 创建 .wd
-wd update    刷新来源，并只在需要审阅时创建 source_snapshot
+wd update    刷新所有 .wd；传路径时只刷新单个 .wd
 wd status    扫描 .wd 状态
 wd review    生成 review JSON 和 patch
 wd apply     把候选内容应用到 effective
@@ -150,7 +232,7 @@ wd ingest    提取 effective，作为 llmwiki 兼容桥
 ```text
 *.md        builtin.file + builtin.markdown
 *.txt       builtin.file + builtin.text
-*.html      builtin.file + builtin.html_to_markdown
+*.html      builtin.file + builtin.text
 *.json      builtin.file + builtin.json_to_markdown
 *.pdf       builtin.file + builtin.pdf_to_markdown
 http(s)://  builtin.http + builtin.html_to_markdown
